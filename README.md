@@ -1,5 +1,7 @@
 # rag-radar — RAG Signal Scanner
 
+![rag-radar preview](preview.png)
+
 Surfaces real-world RAG failures from live Reddit discussions.
 
 **No automation. No spam. No noise.**

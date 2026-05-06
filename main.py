@@ -1,17 +1,23 @@
+import time
 import requests
 import json
 from datetime import datetime
 from pathlib import Path
+
 from keywords import KEYWORDS, SUBREDDITS
 from scoring import score_post
 
 OUTPUT_DIR = Path("outputs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-HEADERS = {"User-Agent": "rag-radar/0.1"}
+HEADERS = {"User-Agent": "rag-radar/0.1 by Ebysslabs"}
+
+REQUEST_DELAY_SECONDS = 2
+RESULT_LIMIT_PER_SEARCH = 5
+DIGEST_LIMIT = 10
 
 
-def search_reddit(subreddit, keyword, limit=10):
+def search_reddit(subreddit, keyword, limit=RESULT_LIMIT_PER_SEARCH):
     url = f"https://www.reddit.com/r/{subreddit}/search.json"
     params = {
         "q": keyword,
@@ -21,12 +27,17 @@ def search_reddit(subreddit, keyword, limit=10):
     }
 
     try:
-        r = requests.get(url, headers=HEADERS, params=params, timeout=15)
-        r.raise_for_status()
-        data = r.json()
+        response = requests.get(url, headers=HEADERS, params=params, timeout=15)
+        response.raise_for_status()
+        data = response.json()
         return data.get("data", {}).get("children", [])
+
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP error for r/{subreddit} | keyword='{keyword}': {e}")
+        return []
+
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error for r/{subreddit} | keyword='{keyword}': {e}")
         return []
 
 
@@ -39,16 +50,18 @@ def main():
         for keyword in KEYWORDS:
             posts = search_reddit(subreddit, keyword)
 
-            for item in posts:
-                post = item["data"]
-                post_id = post["id"]
+            time.sleep(REQUEST_DELAY_SECONDS)
 
-                if post_id in leads:
+            for item in posts:
+                post = item.get("data", {})
+                post_id = post.get("id")
+
+                if not post_id or post_id in leads:
                     continue
 
                 title = post.get("title", "")
                 body = post.get("selftext", "")
-                text = f"{title}\n{body}"
+                text = f"{title}\n{body}".strip()
 
                 score, reasons = score_post(text)
 
@@ -68,21 +81,28 @@ def main():
 
     today = datetime.now().strftime("%Y-%m-%d")
 
-    with open(f"outputs/leads_{today}.json", "w", encoding="utf-8") as f:
-        json.dump(sorted_leads, f, indent=2)
+    json_path = OUTPUT_DIR / f"leads_{today}.json"
+    digest_path = OUTPUT_DIR / f"digest_{today}.md"
 
-    with open(f"outputs/digest_{today}.md", "w", encoding="utf-8") as f:
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(sorted_leads, f, indent=2, ensure_ascii=False)
+
+    with open(digest_path, "w", encoding="utf-8") as f:
         f.write(f"# RAG Radar — {today}\n\n")
 
-        for i, lead in enumerate(sorted_leads[:10], start=1):
+        for i, lead in enumerate(sorted_leads[:DIGEST_LIMIT], start=1):
             f.write(f"## {i}. {lead['title']}\n")
             f.write(f"- r/{lead['subreddit']}\n")
             f.write(f"- Score: {lead['score']}\n")
-            f.write(f"- URL: {lead['url']}\n\n")
+            f.write(f"- URL: {lead['url']}\n")
+            f.write(f"- CLICK: {lead['url']}\n")
+            f.write(f"- Reasons: {', '.join(lead['reasons'])}\n\n")
             f.write(f"{lead['text_preview']}\n\n")
             f.write("---\n\n")
 
     print(f"Done. Found {len(sorted_leads)} leads.")
+    print(f"JSON saved to: {json_path}")
+    print(f"Digest saved to: {digest_path}")
 
 
 if __name__ == "__main__":
