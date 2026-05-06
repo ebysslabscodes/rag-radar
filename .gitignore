@@ -1,0 +1,12 @@
+## Virtual environment
+.venv/
+
+# Ignore outputs completely (folder + files)
+outputs/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Env / secrets
+.env
