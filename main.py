@@ -7,6 +7,9 @@ from pathlib import Path
 from keywords import KEYWORDS, SUBREDDITS
 from scoring import score_post
 
+from theme_detector import detect_themes, detect_emotions
+from stats import build_theme_stats, build_emotion_stats
+
 OUTPUT_DIR = Path("outputs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
@@ -65,6 +68,9 @@ def main():
 
                 score, reasons = score_post(text)
 
+                themes = detect_themes(text)
+                emotions = detect_emotions(text)
+
                 if score <= 0:
                     continue
 
@@ -75,9 +81,14 @@ def main():
                     "score": score,
                     "reasons": reasons,
                     "text_preview": text[:400],
+                    "themes": themes,
+                    "emotions": emotions,
                 }
 
     sorted_leads = sorted(leads.values(), key=lambda x: x["score"], reverse=True)
+
+    theme_stats = build_theme_stats(sorted_leads)
+    emotion_stats = build_emotion_stats(sorted_leads)
 
     today = datetime.now().strftime("%Y-%m-%d")
 
@@ -88,15 +99,52 @@ def main():
         json.dump(sorted_leads, f, indent=2, ensure_ascii=False)
 
     with open(digest_path, "w", encoding="utf-8") as f:
-        f.write(f"# RAG Radar — {today}\n\n")
+        f.write(f"# RAG Radar — Weekly Signals ({today})\n\n")
+
+        f.write("Scanned:\n")
+        f.write(f"- {len(sorted_leads)} relevant Reddit discussions\n")
+
+        subreddit_counts = {}
+
+        for lead in sorted_leads:
+            subreddit = lead["subreddit"]
+            subreddit_counts[subreddit] = subreddit_counts.get(subreddit, 0) + 1
+
+        for subreddit, count in sorted(subreddit_counts.items()):
+            f.write(f"- {count} r/{subreddit} posts\n")
+
+        f.write("\n")
+
+        f.write("## Top recurring themes\n\n")
+        if theme_stats:
+            for i, (theme, count) in enumerate(theme_stats.most_common(5), start=1):
+                f.write(f"{i}. {theme} ({count})\n")
+        else:
+            f.write("No recurring themes detected.\n")
+
+        f.write("\n")
+
+        f.write("## Most common emotional pattern\n\n")
+        if emotion_stats:
+            top_emotion, count = emotion_stats.most_common(1)[0]
+            f.write(f'"{top_emotion}" ({count})\n\n')
+        else:
+            f.write("No emotional pattern detected.\n\n")
+
+        f.write("## Top leads\n\n")
 
         for i, lead in enumerate(sorted_leads[:DIGEST_LIMIT], start=1):
-            f.write(f"## {i}. {lead['title']}\n")
-            f.write(f"- r/{lead['subreddit']}\n")
+            f.write(f"### {i}. {lead['title']}\n")
+            f.write(f"- Subreddit: r/{lead['subreddit']}\n")
             f.write(f"- Score: {lead['score']}\n")
-            f.write(f"- URL: {lead['url']}\n")
-            f.write(f"- CLICK: {lead['url']}\n")
-            f.write(f"- Reasons: {', '.join(lead['reasons'])}\n\n")
+            f.write(f"- Link: {lead['url']}\n")
+            f.write(f"- Reasons: {', '.join(lead['reasons'])}\n")
+            f.write(
+                f"- Themes: {', '.join(lead['themes']) if lead['themes'] else 'None detected'}\n"
+            )
+            f.write(
+                f"- Emotional patterns: {', '.join(lead['emotions']) if lead['emotions'] else 'None detected'}\n\n"
+            )
             f.write(f"{lead['text_preview']}\n\n")
             f.write("---\n\n")
 
