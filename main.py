@@ -10,6 +10,9 @@ from scoring import score_post
 from theme_detector import detect_themes, detect_emotions
 from stats import build_theme_stats, build_emotion_stats
 
+from intent_detector import detect_production_intent
+from visual_summary import generate_visual_summary
+
 OUTPUT_DIR = Path("outputs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
@@ -71,6 +74,8 @@ def main():
                 themes = detect_themes(text)
                 emotions = detect_emotions(text)
 
+                intent_score, intent_matches = detect_production_intent(text)
+
                 if score <= 0:
                     continue
 
@@ -79,13 +84,25 @@ def main():
                     "title": title,
                     "url": "https://reddit.com" + post.get("permalink", ""),
                     "score": score,
+                    "upvotes": post.get("ups", 0),
+                    "comments": post.get("num_comments", 0),
+                    "intent_score": intent_score,
+                    "intent_matches": intent_matches,
                     "reasons": reasons,
                     "text_preview": text[:400],
                     "themes": themes,
                     "emotions": emotions,
                 }
 
-    sorted_leads = sorted(leads.values(), key=lambda x: x["score"], reverse=True)
+    for lead in leads.values():
+        engagement_score = min(lead["upvotes"] / 10, 10) + min(lead["comments"] / 5, 10)
+
+        lead["engagement_score"] = round(engagement_score, 2)
+        lead["final_score"] = round(
+            lead["score"] + lead["intent_score"] + engagement_score, 2
+        )
+
+    sorted_leads = sorted(leads.values(), key=lambda x: x["final_score"], reverse=True)
 
     theme_stats = build_theme_stats(sorted_leads)
     emotion_stats = build_emotion_stats(sorted_leads)
@@ -137,6 +154,11 @@ def main():
             f.write(f"### {i}. {lead['title']}\n")
             f.write(f"- Subreddit: r/{lead['subreddit']}\n")
             f.write(f"- Score: {lead['score']}\n")
+            f.write(f"- Final score: {lead['final_score']}\n")
+            f.write(f"- Intent score: {lead['intent_score']}\n")
+            f.write(f"- Engagement score: {lead['engagement_score']}\n")
+            f.write(f"- Upvotes: {lead['upvotes']}\n")
+            f.write(f"- Comments: {lead['comments']}\n")
             f.write(f"- Link: {lead['url']}\n")
             f.write(f"- Reasons: {', '.join(lead['reasons'])}\n")
             f.write(
@@ -151,6 +173,12 @@ def main():
     print(f"Done. Found {len(sorted_leads)} leads.")
     print(f"JSON saved to: {json_path}")
     print(f"Digest saved to: {digest_path}")
+
+    visual_path = OUTPUT_DIR / f"weekly_summary_{today}.png"
+
+    generate_visual_summary(sorted_leads, subreddit_counts, visual_path, today)
+
+    print(f"Visual summary saved to: {visual_path}")
 
 
 if __name__ == "__main__":
