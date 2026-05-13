@@ -63,7 +63,7 @@ def generate_visual_summary(leads, subreddit_counts, output_path, run_date):
 
     # Main stat card
     draw.rounded_rectangle((70, 180, 420, 360), radius=22, fill=card)
-    draw.text((100, 210), "Captured", fill=gray, font=section_font)
+    draw.text((100, 210), "Signals Captured", fill=gray, font=section_font)
     draw.text((100, 255), f"{len(leads)}", fill=orange, font=_font(54, bold=True))
     draw.text((190, 272), "relevant discussions", fill=white, font=body_font)
 
@@ -101,7 +101,7 @@ def generate_visual_summary(leads, subreddit_counts, output_path, run_date):
     draw.rounded_rectangle((725, 390, 1330, 650), radius=22, fill=card)
     draw.text(
         (755, 420),
-        "Most common emotional pattern",
+        "Most common production sentiment",
         fill=orange,
         font=section_font,
     )
@@ -127,7 +127,7 @@ def generate_visual_summary(leads, subreddit_counts, output_path, run_date):
     # Top production signal
     top_lead = leads[0] if leads else {}
     draw.rounded_rectangle((70, 675, 1330, 860), radius=22, fill=card)
-    draw.text((100, 705), "Top production signal", fill=orange, font=section_font)
+    draw.text((100, 705), "Highest intent discussion", fill=orange, font=section_font)
 
     title = top_lead.get("title", "No lead detected")
     title_lines = _wrap_text(draw, title, body_font, 900)
@@ -178,7 +178,7 @@ def generate_visual_summary(leads, subreddit_counts, output_path, run_date):
     # Footer
     draw.text(
         (70, 910),
-        "rag-radar · Ebysslabs · riswis.com",
+        "rag-radar • retrieval reliability intelligence • riswis.com",
         fill=muted,
         font=tiny_font,
     )
