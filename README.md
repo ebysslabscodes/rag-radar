@@ -1,10 +1,8 @@
-# rag-radar — RAG Ecosystem Signal Tracker
+# rag-radar — Production Retrieval Risk Intelligence
 
-![rag-radar preview](preview.png)
+Monitoring where retrieval systems fail in production — before those failures become generation risks.
 
-Community signal layer for retrieval reliability and trust failures.
-
-Surfaces recurring retrieval and trust failures from real-world RAG discussions across Reddit communities.
+Operational intelligence layer for identifying retrieval reliability failures, governance gaps, and trust instability across deployed RAG systems.
 
 **No automation. No spam. No noise.**
 
@@ -12,29 +10,31 @@ Surfaces recurring retrieval and trust failures from real-world RAG discussions 
 
 ## Overview
 
-rag-radar monitors public RAG discussions and extracts recurring reliability signals from real builders and production conversations.
+rag-radar continuously monitors public discussions around production RAG systems and retrieval infrastructure to identify recurring operational failures before they become downstream generation risks.
 
-Once executed:
+The system detects:
 
-- Scans selected Reddit communities for RAG-related discussions
-- Scores posts based on retrieval and trust signals
-- Detects recurring themes and emotional patterns
-- Outputs ranked digests and weekly signal summaries
+- Retrieval trust conflicts
+- Citation verification failures
+- Stale retrieval behavior
+- Reranker instability
+- Chunking degradation
+- Governance exposure patterns
 
-Runs locally using Python.
+Outputs include:
+
+- Operational retrieval risk summaries
+- Governance exposure mapping
+- Weekly ecosystem telemetry
+- Production reliability trend analysis
+
+Built with Python and designed for lightweight operational telemetry workflows.
 
 ---
 
 ## What this is
 
-A lightweight ecosystem signal layer for identifying:
-
-- Retrieval quality failures
-- Citation verification problems
-- Reranker instability
-- Stale or conflicting sources
-- Production reliability concerns
-- Trust breakdowns in RAG pipelines
+A retrieval risk intelligence system focused on operational retrieval failures, governance exposure, and trust instability inside modern RAG pipelines.
 
 ---
 
@@ -52,26 +52,62 @@ Human-in-the-loop by design.
 
 ---
 
-## Example Weekly Signals
+## Example Production Risk Signals
 
 ```text
-RAG Radar — Weekly Signals
+RAG Radar — Weekly Risk Signals
 
 Captured:
-- 128 relevant Reddit discussions
+- 128 relevant discussions
 - 31 r/ArtificialIntelligence posts
 - 25 r/LangChain posts
 - 24 r/LocalLLaMA posts
 
-Top recurring themes:
+Top recurring failure patterns:
 1. Chunk-size instability
 2. Citation verification failures
 3. Reranker inconsistency
 4. Retrieval trust conflicts
 5. Stale document retrieval
 
-Most common emotional pattern:
+Most common production pattern:
 "The system works in demos but breaks in production"
+```
+
+---
+
+## Retrieval Reliability Index (RRI)
+
+RRI is an internal telemetry metric estimating the current stability of the retrieval ecosystem based on detected operational failures and governance-related exposure.
+
+Factors include:
+
+- Trust conflicts
+- Citation failures
+- Stale retrieval
+- Reranker instability
+- Retrieval governance exposure
+
+---
+
+## Governance Mapping
+
+rag-radar identifies recurring retrieval reliability failures across the ecosystem.
+
+RISWIS maps those recurring operational failures to enforceable retrieval governance controls before generation.
+
+| rag-radar Signal | RISWIS Control |
+|---|---|
+| Citation failures | Source trust verification |
+| Trust conflicts | Policy-aware ranking |
+| Chunk instability | Chunk governance |
+| Stale retrieval | Freshness weighting |
+| Reranker instability | Tier-weighted scoring |
+
+Together they form:
+
+```text
+Retrieval Risk Intelligence → Retrieval Governance → LLM
 ```
 
 ---
@@ -79,7 +115,7 @@ Most common emotional pattern:
 ## Flow
 
 ```text
-Reddit → rag-radar → Weekly Signals → Manual Engagement
+Ecosystem Discussions → rag-radar → Risk Signals → Manual Engagement
 ```
 
 ---
@@ -95,7 +131,7 @@ Reddit → rag-radar → Weekly Signals → Manual Engagement
 ## Files
 
 - `main.py` — scanning and digest generation
-- `keywords.py` — search terms and subreddit sources
+- `keywords.py` — search terms and source configuration
 - `scoring.py` — signal scoring logic
 - `theme_detector.py` — recurring theme detection
 - `stats.py` — signal aggregation and statistics
@@ -121,23 +157,21 @@ outputs/
 
 ---
 
-## Purpose
+## Why This Exists
 
-rag-radar exists to help identify recurring reliability and trust issues across the retrieval ecosystem before they become downstream generation failures.
+Modern AI systems frequently fail before generation due to retrieval instability, weak source trust, stale data, and governance gaps.
 
-The goal is visibility — not automation.
+rag-radar exists to continuously surface those operational retrieval risks across the ecosystem.
+
+The goal is measurable retrieval reliability intelligence — not social automation.
 
 ---
 
 ## Related
 
-```text
-Retriever → Governance → LLM
-```
-
 > Same retrieval. Different decision.
 
-[RISWIS — Governance Retrieval Layer](https://riswis.com)
+[RISWIS — Retrieval Governance Layer](https://riswis.com)
 
 ---
 
