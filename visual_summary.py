@@ -58,7 +58,7 @@ def generate_visual_summary(
     severity_by_theme=None,
     rri=None,
 ):
-    width, height = 1400, 1220
+    width, height = 1400, 1245
 
     bg = "#0E1117"
     card = "#161B22"
@@ -85,6 +85,8 @@ def generate_visual_summary(
             return green
         if str(trend).startswith("↓"):
             return red
+        if str(trend).startswith("→ stable"):
+            return green
         return gray
 
     theme_trends = theme_trends or {}
@@ -94,33 +96,42 @@ def generate_visual_summary(
     img = Image.new("RGB", (width, height), bg)
     draw = ImageDraw.Draw(img)
 
-    title_font = _font(52, bold=True)
-    subtitle_font = _font(28)
+    title_font = _font(50, bold=True)
+    subtitle_font = _font(27)
     section_font = _font(28, bold=True)
-    section_font_small = _font(26, bold=True)
+    section_font_small = _font(24, bold=True)
     body_font = _font(24)
     stat_label_font = _font(20)
     small_font = _font(20)
     tiny_font = _font(16)
     methodology_font = _font(13)
 
-    draw.text((70, 55), "RAG Radar — Weekly Signals", fill=white, font=title_font)
+    draw.text(
+        (70, 55),
+        "RAG Radar — Weekly Retrieval Risk Signals",
+        fill=white,
+        font=title_font,
+    )
 
     draw.text(
         (72, 120),
-        f"{run_date} · Retrieval reliability intelligence",
+        f"{run_date} · Production retrieval risk intelligence",
         fill=gray,
         font=subtitle_font,
     )
 
+    # ---------------------------------------------------
+    # Top metric cards
+    # ---------------------------------------------------
+
     draw.rounded_rectangle((70, 180, 420, 370), radius=22, fill=card)
-    draw.text((100, 215), "Signals", fill=gray, font=section_font)
+    draw.text((100, 215), "Production Risk Signals", fill=gray, font=section_font_small)
 
     draw.text((100, 265), f"{len(leads)}", fill=orange, font=_font(54, bold=True))
     draw.text((195, 282), "relevant", fill=white, font=stat_label_font)
-    draw.text((195, 307), "retrieval discussions", fill=white, font=stat_label_font)
+    draw.text((195, 307), "retrieval signals", fill=white, font=stat_label_font)
 
-    rri_label = f"RRI: {rri}/100" if rri is not None else "RRI: N/A"
+    rri_label = f"RRI Score: {rri}/100" if rri is not None else "RRI Score: N/A"
     draw.text((100, 340), rri_label, fill=gray, font=tiny_font)
 
     draw.rounded_rectangle((450, 180, 820, 370), radius=22, fill=card)
@@ -135,7 +146,7 @@ def generate_visual_summary(
     draw.text((570, 307), "flagged this week", fill=white, font=stat_label_font)
 
     draw.rounded_rectangle((850, 180, 1330, 370), radius=22, fill=card)
-    draw.text((880, 215), "RISWIS Governance Match", fill=gray, font=section_font_small)
+    draw.text((880, 215), "Governance Exposure", fill=gray, font=section_font_small)
 
     governance_label = (
         f"{riswis_governance_match}%" if riswis_governance_match is not None else "N/A"
@@ -143,7 +154,17 @@ def generate_visual_summary(
 
     draw.text((880, 265), governance_label, fill=orange, font=_font(48, bold=True))
     draw.text((1000, 278), "mapped to", fill=white, font=stat_label_font)
-    draw.text((1000, 303), "governance controls", fill=white, font=stat_label_font)
+    draw.text((1000, 303), "retrieval controls", fill=white, font=stat_label_font)
+    draw.text(
+        (880, 340),
+        "RISWIS control correlation",
+        fill=gray,
+        font=tiny_font,
+    )
+
+    # ---------------------------------------------------
+    # Counters
+    # ---------------------------------------------------
 
     theme_counter = Counter()
     emotion_counter = Counter()
@@ -155,11 +176,15 @@ def generate_visual_summary(
         for emotion in lead.get("emotions", []):
             emotion_counter[emotion] += 1
 
-    draw.rounded_rectangle((70, 405, 675, 690), radius=22, fill=card)
+    # ---------------------------------------------------
+    # Operational Retrieval Risks
+    # ---------------------------------------------------
+
+    draw.rounded_rectangle((70, 405, 675, 720), radius=22, fill=card)
 
     draw.text(
         (100, 435),
-        "Tracked production failure themes",
+        "Operational Retrieval Risks",
         fill=orange,
         font=section_font_small,
     )
@@ -170,9 +195,9 @@ def generate_visual_summary(
         severity = severity_by_theme.get(theme, "LOW")
         theme_line = _fit_text(
             draw,
-            f"{i}. {theme} ({count}) — {severity}",
+            f"{i}. {theme} ({count} detections) — {severity}",
             body_font,
-            535,
+            560,
         )
         draw.text(
             (105, y),
@@ -180,13 +205,17 @@ def generate_visual_summary(
             fill=severity_color(severity),
             font=body_font,
         )
-        y += 39
+        y += 36
+
+    # ---------------------------------------------------
+    # Dominant production complaint
+    # ---------------------------------------------------
 
     draw.rounded_rectangle((725, 405, 1330, 690), radius=22, fill=card)
 
     draw.text(
         (755, 435),
-        "Most common production sentiment",
+        "Dominant Production Complaint",
         fill=orange,
         font=section_font_small,
     )
@@ -206,51 +235,40 @@ def generate_visual_summary(
 
     draw.text(
         (760, 615),
-        f"Detected {top_emotion[1]} times",
+        f"Observed in {top_emotion[1]} production discussions",
         fill=gray,
         font=small_font,
     )
+
+    # ---------------------------------------------------
+    # Retrieval trend movement
+    # ---------------------------------------------------
 
     draw.rounded_rectangle((70, 715, 675, 890), radius=22, fill=card)
 
     draw.text(
         (100, 745),
-        "Retrieval Trend Direction",
+        "Retrieval Trend Movement",
         fill=orange,
         font=section_font_small,
     )
 
-    y = 785
+    draw.text(
+        (105, 800),
+        "Historical comparison paused during multi-source migration",
+        fill=gray,
+        font=small_font,
+    )
 
-    if theme_trends:
-        for theme, trend in list(theme_trends.items())[:4]:
-            trend_line = _fit_text(
-                draw,
-                f"{theme} {trend}",
-                small_font,
-                535,
-            )
-
-            draw.text(
-                (105, y),
-                trend_line,
-                fill=trend_color(trend),
-                font=small_font,
-            )
-            y += 27
-    else:
-        draw.text(
-            (105, y),
-            "No previous run available",
-            fill=gray,
-            font=small_font,
-        )
+    # ---------------------------------------------------
+    # Governance control correlations
+    # ---------------------------------------------------
 
     draw.rounded_rectangle((725, 715, 1330, 890), radius=22, fill=card)
 
     draw.text(
         (755, 745),
-        "Most correlated governance needs",
+        "Governance Control Correlations",
         fill=orange,
         font=section_font_small,
     )
@@ -277,15 +295,24 @@ def generate_visual_summary(
     else:
         draw.text(
             (760, y),
-            "No governance matches detected",
+            "No governance control correlations detected",
             fill=gray,
             font=small_font,
         )
 
+    # ---------------------------------------------------
+    # Highest ranked operational signal
+    # ---------------------------------------------------
+
     top_lead = leads[0] if leads else {}
 
     draw.rounded_rectangle((70, 915, 1330, 1125), radius=22, fill=card)
-    draw.text((100, 940), "Top operational signal", fill=orange, font=section_font)
+    draw.text(
+        (100, 940),
+        "Highest Ranked Operational Signal",
+        fill=orange,
+        font=section_font,
+    )
 
     title = top_lead.get("title", "No lead detected")
     title_lines = _wrap_text(draw, title, body_font, 1120)
@@ -308,7 +335,7 @@ def generate_visual_summary(
         )
 
         draw.text((100, 1045), excerpt_line, fill=gray, font=small_font)
-        draw.text((100, 1075), f"— r/{subreddit}", fill=muted, font=small_font)
+        draw.text((100, 1075), f"— {subreddit}", fill=muted, font=small_font)
 
     final_score = top_lead.get("final_score", top_lead.get("score", 0))
     intent_score = top_lead.get("intent_score", 0)
@@ -320,7 +347,7 @@ def generate_visual_summary(
     badge_x = 1030
 
     badges = [
-        f"Final: {final_score}",
+        f"Signal Score: {final_score}",
         f"Intent: {intent_score}",
         f"Engagement: {engagement_score}",
     ]
@@ -344,16 +371,34 @@ def generate_visual_summary(
 
         badge_x += badge_w + badge_gap
 
+    # ---------------------------------------------------
+    # Footer / methodology
+    # ---------------------------------------------------
+
     draw.text(
         (70, 1150),
-        "rag-radar • retrieval reliability intelligence • riswis.com • @ebysslabs",
+        "rag-radar • production retrieval risk intelligence • riswis.com • @ebysslabs",
         fill=muted,
         font=tiny_font,
     )
 
     draw.text(
         (70, 1172),
-        "Signals include retrieval failures, citation integrity issues, reranker instability, stale retrieval, trust conflicts, and governance correlations.",
+        "Governance Exposure = percentage of detected operational retrieval risks mapped to enforceable retrieval governance controls.",
+        fill=muted,
+        font=methodology_font,
+    )
+
+    draw.text(
+        (70, 1190),
+        "Scores derive from retrieval failure signals, citation integrity issues, stale retrieval, trust conflicts, and operational discussion patterns.",
+        fill=muted,
+        font=methodology_font,
+    )
+
+    draw.text(
+        (70, 1205),
+        "Source names reflect original platform formatting.",
         fill=muted,
         font=methodology_font,
     )

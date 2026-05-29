@@ -1,5 +1,7 @@
 # rag-radar — Production Retrieval Risk Intelligence
 
+![rag-radar preview](preview.png)
+
 Monitoring where retrieval systems fail in production — before those failures become generation risks.
 
 Operational intelligence layer for identifying retrieval reliability failures, governance gaps, and trust instability across deployed RAG systems.
@@ -10,25 +12,36 @@ Operational intelligence layer for identifying retrieval reliability failures, g
 
 ## Overview
 
-rag-radar continuously monitors public discussions around production RAG systems and retrieval infrastructure to identify recurring operational failures before they become downstream generation risks.
+rag-radar continuously monitors public engineering ecosystems for operational retrieval failures inside production and production-adjacent RAG systems.
+
+The system identifies recurring retrieval reliability failures before they become downstream generation risks.
+
+Current monitored ecosystems include:
+
+* GitHub Issues
+* GitHub Pull Requests
+* Hacker News
+* Public RAG engineering discussions
 
 The system detects:
 
-- Retrieval trust conflicts
-- Citation verification failures
-- Stale retrieval behavior
-- Reranker instability
-- Chunking degradation
-- Governance exposure patterns
+* Retrieval trust conflicts
+* Citation verification failures
+* Stale retrieval behavior
+* Reranker instability
+* Chunk-size instability
+* Retrieval audit visibility gaps
+* Governance exposure patterns
 
 Outputs include:
 
-- Operational retrieval risk summaries
-- Governance exposure mapping
-- Weekly ecosystem telemetry
-- Production reliability trend analysis
+* Weekly retrieval risk intelligence reports
+* Governance exposure mapping
+* Operational retrieval telemetry
+* Production reliability trend analysis
+* Retrieval failure evidence summaries
 
-Built with Python and designed for lightweight operational telemetry workflows.
+Built with Python for lightweight operational telemetry and governance intelligence workflows.
 
 ---
 
@@ -36,32 +49,36 @@ Built with Python and designed for lightweight operational telemetry workflows.
 
 A retrieval risk intelligence system focused on operational retrieval failures, governance exposure, and trust instability inside modern RAG pipelines.
 
+rag-radar analyzes where retrieval systems fail operationally — not just where generation outputs fail visibly.
+
 ---
 
 ## What this is not
 
 This repository does not:
 
-- Auto-reply or DM users
-- Generate outreach automatically
-- Store or publish collected leads publicly
-- Operate as a spam or growth bot
-- Automate engagement workflows
+* Auto-reply or DM users
+* Generate outreach automatically
+* Store or publish collected leads publicly
+* Operate as a spam or growth bot
+* Automate engagement workflows
+* Replace retrieval infrastructure
+* Replace vector databases or rerankers
 
 Human-in-the-loop by design.
 
 ---
 
-## Example Production Risk Signals
+## Example Retrieval Risk Signals
 
 ```text
-RAG Radar — Weekly Risk Signals
+RAG Radar — Weekly Retrieval Risk Signals
 
 Captured:
-- 128 relevant discussions
-- 31 r/ArtificialIntelligence posts
-- 25 r/LangChain posts
-- 24 r/LocalLLaMA posts
+- 25 operational retrieval signals
+- GitHub Issues
+- GitHub PR discussions
+- Retrieval engineering telemetry
 
 Top recurring failure patterns:
 1. Chunk-size instability
@@ -71,70 +88,89 @@ Top recurring failure patterns:
 5. Stale document retrieval
 
 Most common production pattern:
-"The system works in demos but breaks in production"
+"The right answer exists but retrieval misses it"
 ```
 
 ---
 
 ## Retrieval Reliability Index (RRI)
 
-RRI is an internal telemetry metric estimating the current stability of the retrieval ecosystem based on detected operational failures and governance-related exposure.
+RRI is an internal telemetry metric estimating current retrieval ecosystem stability based on detected operational failures and governance-related exposure.
 
 Factors include:
 
-- Trust conflicts
-- Citation failures
-- Stale retrieval
-- Reranker instability
-- Retrieval governance exposure
+* Retrieval trust conflicts
+* Citation verification failures
+* Stale retrieval behavior
+* Reranker instability
+* Chunk-size instability
+* Governance exposure correlation
+
+The metric is designed to track operational retrieval degradation patterns over time across public engineering ecosystems.
 
 ---
 
 ## Governance Mapping
 
-rag-radar identifies recurring retrieval reliability failures across the ecosystem.
+rag-radar identifies recurring operational retrieval failures across the ecosystem.
 
 RISWIS maps those recurring operational failures to enforceable retrieval governance controls before generation.
 
-| rag-radar Signal | RISWIS Control |
-|---|---|
-| Citation failures | Source trust verification |
-| Trust conflicts | Policy-aware ranking |
-| Chunk instability | Chunk governance |
-| Stale retrieval | Freshness weighting |
-| Reranker instability | Tier-weighted scoring |
+| rag-radar Signal               | RISWIS Governance Control          |
+| ------------------------------ | ---------------------------------- |
+| Citation verification failures | Source trust verification          |
+| Retrieval trust conflicts      | Policy-aware retrieval ranking     |
+| Chunk-size instability         | Chunk boundary governance          |
+| Stale document retrieval       | Freshness-aware retrieval controls |
+| Reranker inconsistency         | Retrieval audit visibility         |
 
 Together they form:
 
 ```text
-Retrieval Risk Intelligence → Retrieval Governance → LLM
+Retrieval Risk Intelligence
+            ↓
+Retrieval Governance
+            ↓
+LLM Generation
 ```
 
 ---
 
-## Flow
+## Architecture Flow
 
 ```text
-Ecosystem Discussions → rag-radar → Risk Signals → Manual Engagement
+Engineering Ecosystems
+        ↓
+rag-radar
+        ↓
+Retrieval Risk Signals
+        ↓
+Governance Mapping
+        ↓
+Manual Investigation / Engagement
 ```
 
 ---
 
 ## Controls
 
-- Run script → scans and scores discussions
-- Review digest → identify high-signal conversations
-- Respond manually → engage where relevant
+* Run collector → scan engineering ecosystems
+* Generate digest → identify high-signal operational failures
+* Review governance mapping → identify recurring retrieval weaknesses
+* Investigate manually → human-in-the-loop by design
 
 ---
 
 ## Files
 
-- `main.py` — scanning and digest generation
-- `keywords.py` — search terms and source configuration
-- `scoring.py` — signal scoring logic
-- `theme_detector.py` — recurring theme detection
-- `stats.py` — signal aggregation and statistics
+* `main.py` — collection pipeline and digest generation
+* `collectors.py` — GitHub and Hacker News ingestion
+* `keywords.py` — search terms and ecosystem configuration
+* `scoring.py` — operational signal scoring
+* `theme_detector.py` — retrieval failure theme detection
+* `stats.py` — telemetry aggregation and metrics
+* `visual_summary.py` — weekly telemetry visualization
+* `evidence_summary.py` — operational evidence reporting
 
 ---
 
@@ -147,21 +183,32 @@ python main.py
 
 ---
 
-## Output
+## Outputs
 
 ```text
 outputs/
   leads_YYYY-MM-DD.json
   digest_YYYY-MM-DD.md
+  weekly_summary_YYYY-MM-DD.png
+  evidence_summary_YYYY-MM-DD.png
 ```
 
 ---
 
 ## Why This Exists
 
-Modern AI systems frequently fail before generation due to retrieval instability, weak source trust, stale data, and governance gaps.
+Modern AI systems frequently fail before generation due to:
 
-rag-radar exists to continuously surface those operational retrieval risks across the ecosystem.
+* weak retrieval trust
+* stale retrieval state
+* reranker instability
+* chunking degradation
+* missing governance visibility
+* retrieval audit failures
+
+Most AI reliability discussions focus on generation outputs.
+
+rag-radar focuses on the operational retrieval layer underneath them.
 
 The goal is measurable retrieval reliability intelligence — not social automation.
 
@@ -171,11 +218,14 @@ The goal is measurable retrieval reliability intelligence — not social automat
 
 > Same retrieval. Different decision.
 
-[RISWIS — Retrieval Governance Layer](https://riswis.com)
+RISWIS — Retrieval Governance Layer
+
+https://riswis.com
 
 ---
 
 ## License
 
-Licensed under the Ebysslabs Ethical Use License v1.1  
+Licensed under the Ebysslabs Ethical Use License v1.1
+
 © 2026 Ronald Reed (Ebysslabs)

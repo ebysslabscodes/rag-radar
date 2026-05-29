@@ -1,9 +1,9 @@
 RISWIS_MAPPING = {
-    "Stale document retrieval": "Freshness weighting",
-    "Citation verification failures": "Source verification",
-    "Retrieval trust conflicts": "Policy-aware ranking",
-    "Reranker inconsistency": "Audit trail visibility",
-    "Chunk-size instability": "Chunk governance controls",
+    "Stale document retrieval": "Freshness-aware retrieval controls",
+    "Citation verification failures": "Source trust verification",
+    "Retrieval trust conflicts": "Policy-aware retrieval ranking",
+    "Reranker inconsistency": "Retrieval audit visibility",
+    "Chunk-size instability": "Chunk boundary governance",
 }
 
 

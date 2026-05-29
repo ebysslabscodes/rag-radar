@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from keywords import KEYWORDS, SUBREDDITS
+from keywords import KEYWORDS
 from scoring import score_post
 from theme_detector import detect_themes, detect_emotions
 from stats import (
@@ -17,6 +17,8 @@ from visual_summary import generate_visual_summary
 from riswis_mapping import map_theme_to_governance
 from dedupe import is_duplicate
 from history import load_history, save_history, calculate_delta
+from evidence_summary import generate_evidence_summary
+from collectors import collect_hackernews, collect_github
 
 # ---------------------------------------------------
 # Output setup
@@ -27,13 +29,13 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 
 # ---------------------------------------------------
-# Reddit request settings
+# Source collection settings
 # ---------------------------------------------------
 
 HEADERS = {"User-Agent": "rag-radar/0.1 by Ebysslabs"}
 
-REQUEST_DELAY_SECONDS = 2
-RESULT_LIMIT_PER_SEARCH = 5
+REQUEST_DELAY_SECONDS = 8
+RESULT_LIMIT_PER_SEARCH = 3
 DIGEST_LIMIT = 10
 
 
@@ -57,49 +59,10 @@ def classify_severity(count):
 
 
 # ---------------------------------------------------
-# Reddit Search
+# Source collection helpers
 #
-# Searches one subreddit for one keyword.
-# Returns raw Reddit post objects.
-# ---------------------------------------------------
-
-
-def search_reddit(subreddit, keyword, limit=RESULT_LIMIT_PER_SEARCH):
-    url = f"https://www.reddit.com/r/{subreddit}/search.json"
-    params = {
-        "q": keyword,
-        "restrict_sr": "1",
-        "sort": "new",
-        "limit": limit,
-    }
-
-    try:
-        response = requests.get(url, headers=HEADERS, params=params, timeout=15)
-        response.raise_for_status()
-        data = response.json()
-        return data.get("data", {}).get("children", [])
-
-    except requests.exceptions.HTTPError as e:
-        print(f"HTTP error for r/{subreddit} | keyword='{keyword}': {e}")
-        return []
-
-    except Exception as e:
-        print(f"Error for r/{subreddit} | keyword='{keyword}': {e}")
-        return []
-
-
-# ---------------------------------------------------
-# Production Excerpt Extraction
-#
-# Pulls a strong operational signal from the
-# highest-ranked discussion.
-#
-# V1 keeps this simple and deterministic:
-# use the title of the top-ranked lead.
-#
-# Purpose:
-# turns the report from only stats into
-# an intelligence-style report with a real signal.
+# Extracts normalized retrieval signals from
+# supported public engineering sources.
 # ---------------------------------------------------
 
 
@@ -121,7 +84,7 @@ def extract_production_excerpt(leads):
 # ---------------------------------------------------
 # Main pipeline
 #
-# 1. Search Reddit
+# 1. Collect public engineering signals
 # 2. Deduplicate titles
 # 3. Score posts
 # 4. Detect themes/emotions/production intent
@@ -137,77 +100,71 @@ def main():
     leads = {}
     existing_titles = []
 
-    print("Scanning Reddit for RAG pain signals...\n")
+    print("Scanning public engineering sources for RAG pain signals...\n")
 
     # ---------------------------------------------------
-    # Scan configured subreddits and keywords
+    # Scan configured keywords across public sources
     # ---------------------------------------------------
 
-    for subreddit in SUBREDDITS:
-        for keyword in KEYWORDS:
-            posts = search_reddit(subreddit, keyword)
+    for keyword in KEYWORDS:
+        source_items = []
 
-            time.sleep(REQUEST_DELAY_SECONDS)
+        # ---------------------------------------------
+        # Hacker News collection
+        # ---------------------------------------------
 
-            for item in posts:
-                post = item.get("data", {})
-                post_id = post.get("id")
+        source_items.extend(collect_hackernews(keyword, limit=5))
 
-                if not post_id or post_id in leads:
-                    continue
+        # ---------------------------------------------
+        # GitHub collection
+        # ---------------------------------------------
 
-                title = post.get("title", "")
-                body = post.get("selftext", "")
-                text = f"{title}\n{body}".strip()
+        source_items.extend(collect_github(keyword, limit=5))
 
-                # ---------------------------------------------------
-                # Duplicate detection
-                #
-                # Prevents repeated/cross-posted discussions from
-                # inflating report counts.
-                # ---------------------------------------------------
+        # ---------------------------------------------
+        # Process collected items
+        # ---------------------------------------------
 
-                if is_duplicate(title, existing_titles):
-                    continue
+        for item in source_items:
+            post_id = item.get("id")
 
-                existing_titles.append(title)
+            if not post_id or post_id in leads:
+                continue
 
-                # ---------------------------------------------------
-                # Core scoring + signal detection
-                # ---------------------------------------------------
+            title = item.get("title", "")
+            text = item.get("text", "").strip()
 
-                score, reasons = score_post(text)
+            if is_duplicate(title, existing_titles):
+                continue
 
-                themes = detect_themes(text)
-                emotions = detect_emotions(text)
+            existing_titles.append(title)
 
-                intent_score, intent_matches = detect_production_intent(text)
+            score, reasons = score_post(text)
+            themes = detect_themes(text)
+            emotions = detect_emotions(text)
+            intent_score, intent_matches = detect_production_intent(text)
 
-                if score <= 0:
-                    continue
+            if score <= 0:
+                continue
 
-                # ---------------------------------------------------
-                # Store lead
-                #
-                # governance_mapping connects detected failure themes
-                # to the RISWIS governance need.
-                # ---------------------------------------------------
+            leads[post_id] = {
+                "platform": item.get("platform", "Unknown"),
+                "subreddit": item.get("source", "Unknown"),
+                "title": title,
+                "url": item.get("url", ""),
+                "score": score,
+                "upvotes": item.get("upvotes", 0),
+                "comments": item.get("comments", 0),
+                "intent_score": intent_score,
+                "intent_matches": intent_matches,
+                "reasons": reasons,
+                "text_preview": text[:400],
+                "themes": themes,
+                "emotions": emotions,
+                "governance_mapping": map_theme_to_governance(themes),
+            }
 
-                leads[post_id] = {
-                    "subreddit": subreddit,
-                    "title": title,
-                    "url": "https://reddit.com" + post.get("permalink", ""),
-                    "score": score,
-                    "upvotes": post.get("ups", 0),
-                    "comments": post.get("num_comments", 0),
-                    "intent_score": intent_score,
-                    "intent_matches": intent_matches,
-                    "reasons": reasons,
-                    "text_preview": text[:400],
-                    "themes": themes,
-                    "emotions": emotions,
-                    "governance_mapping": map_theme_to_governance(themes),
-                }
+        time.sleep(1)
 
     # ---------------------------------------------------
     # Engagement + final score
@@ -348,7 +305,7 @@ def main():
         elif delta < 0:
             theme_trends[theme] = f"↓ {delta}%"
         else:
-            theme_trends[theme] = "→ baseline"
+            theme_trends[theme] = "→ stable"
 
     governance_counts = {}
 
@@ -395,34 +352,38 @@ def main():
     # ---------------------------------------------------
 
     with open(digest_path, "w", encoding="utf-8") as f:
-        f.write(f"# RAG Radar — Weekly Signals ({today})\n\n")
+        f.write(f"# RAG Radar — Weekly Retrieval Risk Signals ({today})\n\n")
 
         # ---------------------------------------------------
         # Retrieval Reliability Index
         # ---------------------------------------------------
 
         f.write("## Retrieval Reliability Index (RRI)\n\n")
-        f.write(f"RRI: {rri}/100\n\n")
+        f.write(f"RRI Score: {rri}/100\n\n")
 
         # ---------------------------------------------------
         # Week-over-week telemetry
         # ---------------------------------------------------
 
-        if weekly_changes:
-            f.write("## Week-over-week\n\n")
+        # ---------------------------------------------------
+        # Trend movement
+        #
+        # Historical Reddit-only baselines are no longer
+        # comparable after the multi-source expansion.
+        # ---------------------------------------------------
 
-            f.write(f"Citation failures " f"{weekly_changes['citation_failures']}%\n")
+        f.write("## Trend Movement\n\n")
 
-            f.write(f"Trust conflicts " f"{weekly_changes['trust_conflicts']}%\n")
+        f.write("Historical comparison paused during multi-source migration.\n")
 
-            f.write(f"Stale retrieval " f"{weekly_changes['stale_retrieval']}%\n\n")
+        f.write("Baseline recalibration in progress.\n\n")
 
         # ---------------------------------------------------
         # Scan summary
         # ---------------------------------------------------
 
         f.write("Scanned:\n")
-        f.write(f"- {len(sorted_leads)} relevant Reddit discussions\n")
+        f.write(f"- {len(sorted_leads)} relevant retrieval signals\n")
 
         subreddit_counts = {}
 
@@ -431,7 +392,7 @@ def main():
             subreddit_counts[subreddit] = subreddit_counts.get(subreddit, 0) + 1
 
         for subreddit, count in sorted(subreddit_counts.items()):
-            f.write(f"- {count} r/{subreddit} posts\n")
+            f.write(f"- {count} {subreddit} signals\n")
 
         f.write("\n")
 
@@ -439,7 +400,7 @@ def main():
         # Theme summary
         # ---------------------------------------------------
 
-        f.write("## Tracked production failure themes\n\n")
+        f.write("## Operational Retrieval Risks\n\n")
 
         if theme_stats:
             for i, (theme, count) in enumerate(
@@ -447,7 +408,7 @@ def main():
                 start=1,
             ):
                 severity = severity_by_theme.get(theme, "LOW")
-                f.write(f"{i}. {theme} ({count}) — {severity}\n")
+                f.write(f"{i}. {theme} ({count} detections) — {severity}\n")
         else:
             f.write("No recurring themes detected.\n")
 
@@ -458,7 +419,7 @@ def main():
         # ---------------------------------------------------
 
         if theme_trends:
-            f.write("## Retrieval Trend Direction\n\n")
+            f.write("## Retrieval Trend Movement\n\n")
 
             for theme, trend in theme_trends.items():
                 f.write(f"- {theme} {trend}\n")
@@ -469,15 +430,15 @@ def main():
         # RISWIS Governance Match
         # ---------------------------------------------------
 
-        f.write("## RISWIS Governance Match\n\n")
+        f.write("## Governance Exposure\n\n")
 
         f.write(
-            f"{riswis_governance_match}% of detected retrieval "
-            f"failures mapped to governance controls.\n\n"
+            f"{riswis_governance_match}% of detected operational retrieval "
+            f"risks mapped to enforceable retrieval governance controls.\n\n"
         )
 
         if governance_counts:
-            f.write("Most correlated governance needs:\n\n")
+            f.write("Governance control correlations:\n\n")
 
             sorted_governance = sorted(
                 governance_counts.items(),
@@ -508,7 +469,7 @@ def main():
         # Most common production sentiment
         # ---------------------------------------------------
 
-        f.write("## Most common production sentiment\n\n")
+        f.write("## Dominant Production Complaint\n\n")
 
         if emotion_stats:
             top_emotion, count = emotion_stats.most_common(1)[0]
@@ -528,7 +489,7 @@ def main():
 
         if production_excerpt:
             f.write(f'> "{production_excerpt["excerpt"]}"\n\n')
-            f.write(f'— r/{production_excerpt["subreddit"]}\n\n')
+            f.write(f'— {production_excerpt["subreddit"]}\n\n')
         else:
             f.write("No production excerpt detected.\n\n")
 
@@ -536,11 +497,11 @@ def main():
         # Top leads
         # ---------------------------------------------------
 
-        f.write("## Top leads\n\n")
+        f.write("## Highest Ranked Operational Signals\n\n")
 
         for i, lead in enumerate(sorted_leads[:DIGEST_LIMIT], start=1):
             f.write(f"### {i}. {lead['title']}\n")
-            f.write(f"- Subreddit: r/{lead['subreddit']}\n")
+            f.write(f"- Source: {lead['subreddit']}\n")
             f.write(f"- Score: {lead['score']}\n")
             f.write(f"- Final score: {lead['final_score']}\n")
             f.write(f"- Intent score: {lead['intent_score']}\n")
@@ -603,6 +564,16 @@ def main():
     )
 
     print(f"Visual summary saved to: {visual_path}")
+
+    evidence_path = f"outputs/evidence_summary_{today}.png"
+
+    generate_evidence_summary(
+        sorted_leads,
+        evidence_path,
+        today,
+    )
+
+    print(f"Evidence summary saved to: {evidence_path}")
 
 
 if __name__ == "__main__":
